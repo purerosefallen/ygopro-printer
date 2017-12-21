@@ -53,7 +53,7 @@ function Card.GetDirectionGroup(c,direction)
 	local cp=c:GetControler()
 	local seq=c:GetSequence()
 	local g=Group.CreateGroup()
-	if bit.band(direction,DIRECTION_LEFT)~=0 then
+	if direction | DIRECTION_LEFT~=0 then
 		if cp==0 and seq~=0 then
 			g:MergeCard(cp,loc,seq-1)
 		end
@@ -61,7 +61,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(cp,loc,seq+1)
 		end
 	end
-	if bit.band(direction,DIRECTION_RIGHT)~=0 then
+	if direction | DIRECTION_RIGHT~=0 then
 		if cp==0 and seq~=4 then
 			g:MergeCard(cp,loc,seq+1)
 		end
@@ -69,7 +69,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(cp,loc,seq-1)
 		end
 	end
-	if bit.band(direction,DIRECTION_UP)~=0 then
+	if direction | DIRECTION_UP~=0 then
 		if loc==LOCATION_SZONE and cp==0 then
 			g:MergeCard(0,LOCATION_MZONE,seq)
 		elseif loc==LOCATION_MZONE and cp==0 then
@@ -78,7 +78,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(1,LOCATION_SZONE,seq)
 		end
 	end
-	if bit.band(direction,DIRECTION_DOWN)~=0 then
+	if direction | DIRECTION_DOWN~=0 then
 		if loc==LOCATION_SZONE and cp==1 then
 			g:MergeCard(1,LOCATION_MZONE,seq)
 		elseif loc==LOCATION_MZONE and cp==1 then
@@ -87,7 +87,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(0,LOCATION_SZONE,seq)
 		end
 	end
-	if bit.band(direction,DIRECTION_UP_LEFT)~=0 then
+	if direction | DIRECTION_UP_LEFT~=0 then
 		if loc==LOCATION_SZONE and cp==0 and seq~=0 then
 			g:MergeCard(0,LOCATION_MZONE,seq-1)
 		elseif loc==LOCATION_MZONE and cp==0 and seq~=0 then
@@ -96,7 +96,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(1,LOCATION_SZONE,seq+1)
 		end
 	end
-	if bit.band(direction,DIRECTION_UP_RIGHT)~=0 then
+	if direction | DIRECTION_UP_RIGHT~=0 then
 		if loc==LOCATION_SZONE and cp==0 and seq~=4 then
 			g:MergeCard(0,LOCATION_MZONE,seq+1)
 		elseif loc==LOCATION_MZONE and cp==0 and seq~=4 then
@@ -105,7 +105,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(1,LOCATION_SZONE,seq-1)
 		end
 	end
-	if bit.band(direction,DIRECTION_DOWN_LEFT)~=0 then
+	if direction | DIRECTION_DOWN_LEFT~=0 then
 		if loc==LOCATION_SZONE and cp==1 and seq~=4 then
 			g:MergeCard(1,LOCATION_MZONE,seq+1)
 		elseif loc==LOCATION_MZONE and cp==1 and seq~=4 then
@@ -114,7 +114,7 @@ function Card.GetDirectionGroup(c,direction)
 			g:MergeCard(0,LOCATION_SZONE,seq-1)
 		end
 	end
-	if bit.band(direction,DIRECTION_DOWN_RIGHT)~=0 then
+	if direction | DIRECTION_DOWN_RIGHT~=0 then
 		if loc==LOCATION_SZONE and cp==1 and seq~=0 then
 			g:MergeCard(1,LOCATION_MZONE,seq-1)
 		elseif loc==LOCATION_MZONE and cp==1 and seq~=0 then
