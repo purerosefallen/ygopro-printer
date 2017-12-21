@@ -361,7 +361,7 @@ function Duel.CalculateTime(t1,t2)
 end
 function Duel.WinMsg()
 	local end_time = os.clock()
-	local s = string.format("You Win!\nStart LP: %d\nMax Damage: %d\nTotal Time: %d second\nScore: %d",START_LP,MAX_DM,PLAY_TIME,Duel.GetScore()) 
+	local s = string.format("You Win!\nStart LP: %d\nMax Damage: %d\nTotal Time: %d sec\nScore: %d",START_LP,MAX_DM,math.floor(PLAY_TIME),Duel.GetScore()) 
 	Debug.ShowHint(s)
 end
 
