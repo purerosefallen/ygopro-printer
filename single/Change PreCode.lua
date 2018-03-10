@@ -22,7 +22,7 @@ function Auxiliary.LoadDB(db)
 end
 function Auxiliary.Replace(old,new)
 	if not old then
-		Debug.Message(old.." not found.")
+		Debug.Message(new.." not found.")
 		return
 	end
 	Debug.Message("Will replace "..old.." to "..new..".")
