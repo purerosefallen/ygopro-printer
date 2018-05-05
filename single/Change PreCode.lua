@@ -1,4 +1,4 @@
-local script={}
+local script={"#!/bin/bash"}
 function Auxiliary.SplitData(inputstr)
 	local t={}
 	for str in string.gmatch(inputstr,"([^|]+)") do
