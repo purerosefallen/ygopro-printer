@@ -21,11 +21,11 @@ function Auxiliary.LoadDB(db)
 	return res,res_rev
 end
 function Auxiliary.Replace(old,new)
-	if old<100000000 then return end
 	if not old then
 		Debug.Message(new.." not found.")
 		return
 	end
+	if old<100000000 then return end
 	Debug.Message("Will replace "..old.." to "..new..".")
 	table.insert(script,"mv -f ./script/c"..old..".lua ./script/c"..new..".lua")
 	table.insert(script,"mv -f ./pics/"..old..".jpg ./pics/"..new..".jpg")
