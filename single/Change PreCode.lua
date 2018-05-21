@@ -21,6 +21,7 @@ function Auxiliary.LoadDB(db)
 	return res,res_rev
 end
 function Auxiliary.Replace(old,new)
+	if old<100000000 then return end
 	if not old then
 		Debug.Message(new.." not found.")
 		return
@@ -44,7 +45,7 @@ function Auxiliary.Output()
 end
 
 local old,old_rev=Auxiliary.LoadDB("ygopro-pre-data/expansions/pre-release.cdb")
-local new,new_rev=Auxiliary.LoadDB("new.cdb")
+local new,new_rev=Auxiliary.LoadDB("cards.cdb")
 for code,name in pairs(new) do
 	local old_code=old_rev[name]
 	Auxiliary.Replace(old_code,code)
