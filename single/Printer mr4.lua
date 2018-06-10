@@ -180,7 +180,7 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 			else
 				pos=Duel.SelectPosition(0,d,15)
 			end
-			Duel.MoveToField(d,p,p,lc,pos,true)
+			Duel.MoveToField(d,0,p,lc,pos,true)
 		elseif lc==8 then
 			local pos=nil
 			if d:IsType(TYPE_PENDULUM) then
@@ -188,7 +188,7 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 			else
 				pos=Duel.SelectPosition(0,d,POS_ATTACK)
 			end
-			Duel.MoveToField(d,p,p,lc,pos,true)
+			Duel.MoveToField(d,0,p,lc,pos,true)
 		elseif lc==16 then
 			Duel.SendtoGrave(d,0x20400)
 		elseif lc==32 then
