@@ -9,7 +9,7 @@ end
 function LoadDB(db)
 	local res={}
 	local res_rev={}
-	local file=io.popen("bash echo \"select id,name from texts;\" | sqlite3 "..db)
+	local file=io.popen("sqlite3 "..db.." -cmd 'select id,name from texts;'")
 	for line in file:lines() do
 		local data=SplitData(line)
 		local code=tonumber(data[1])
