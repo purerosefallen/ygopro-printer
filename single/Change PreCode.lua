@@ -10,7 +10,7 @@ end
 function LoadDB(db)
 	local res={}
 	local res_rev={}
-	local file=io.popen("sqlite3 "..db.." -cmd 'select id,name from texts;'")
+	local file=io.popen('sqlite3 '..db..' -cmd "select id,name from texts;"')
 	local count=0
 	for line in file:lines() do
 		local data=SplitData(line)
