@@ -16,8 +16,10 @@ function LoadDB(db)
 		local data=SplitData(line)
 		local code=tonumber(data[1])
 		local name=data[2]
-		res[code]=name
-		res_rev[name]=code
+		if code and name then
+			res[code]=name
+			res_rev[name]=code
+		end
 		count=count+1
 	end
 	file:close()
