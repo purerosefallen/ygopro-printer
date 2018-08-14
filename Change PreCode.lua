@@ -1,4 +1,5 @@
 local script={}
+local script_={}
 local output_func=Debug and Debug.Message or print
 function SplitData(inputstr)
 	local t={}
@@ -28,14 +29,15 @@ end
 function Replace(old,new)
 	if not old or old==new then return end
 	output_func("Will replace "..old.." to "..new..".")
-	table.insert(script,"echo \"Replacing "..old.." to "..new..".\"")
+	table.insert(script,"echo \"Moving "..old.." to "..new..".\"")
 	table.insert(script,"mv -f ./output/script/c"..old..".lua ./output/script/c"..new..".lua")
 	table.insert(script,"mv -f ./output/pics/"..old..".jpg ./output/pics/"..new..".jpg")
 	table.insert(script,"mv -f ./output/pics/"..old..".png ./output/pics/"..new..".png")
-	table.insert(script,"sed -i 's/"..old.."/"..new.."/g' ./output/script/c*.lua")
+	table.insert(script,"echo \"Replacing "..old.." to "..new..".\"")
+	table.insert(script_,"sed -i 's/"..old.."/"..new.."/g' ./output/script/c*.lua")
 	for i=1,9 do
-		table.insert(script,"sed -i 's/"..(old+i*100).."/"..new+i.."/g' ./output/script/c*.lua")	
-		table.insert(script,"sed -i 's/"..new.."+"..i.."00/"..new+i.."/g' ./output/script/c*.lua")		
+		table.insert(script_,"sed -i 's/"..(old+i*100).."/"..new+i.."/g' ./output/script/c*.lua")	
+		table.insert(script_,"sed -i 's/"..new.."+"..i.."00/"..new+i.."/g' ./output/script/c*.lua")		
 	end
 end
 function Output()
@@ -62,5 +64,11 @@ for code,name in pairs(new) do
 	local old_code=old_rev[name]
 	Replace(old_code,code)
 end
+table.insert(script,"echo \"Removing useless files.\"")
 table.insert(script,"rm -rf ./output/script/c?????????.lua")
+table.insert(script,"rm -rf ./output/pics/?????????.jpg")
+table.insert(script,"rm -rf ./output/pics/?????????.png")
+for _,line in ipairs(script_) do
+	table.insert(script,line)
+end
 Output()
