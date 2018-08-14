@@ -33,7 +33,7 @@ function Replace(old,new)
 	table.insert(script,"mv -f ./output/script/c"..old..".lua ./output/script/c"..new..".lua")
 	table.insert(script,"mv -f ./output/pics/"..old..".jpg ./output/pics/"..new..".jpg")
 	table.insert(script,"mv -f ./output/pics/"..old..".png ./output/pics/"..new..".png")
-	table.insert(script,"echo \"Replacing "..old.." to "..new..".\"")
+	table.insert(script_,"echo \"Replacing "..old.." to "..new..".\"")
 	table.insert(script_,"sed -i 's/"..old.."/"..new.."/g' ./output/script/c*.lua")
 	for i=1,9 do
 		table.insert(script_,"sed -i 's/"..(old+i*100).."/"..new+i.."/g' ./output/script/c*.lua")	
@@ -71,4 +71,5 @@ table.insert(script,"rm -rf ./output/pics/?????????.png")
 for _,line in ipairs(script_) do
 	table.insert(script,line)
 end
+table.insert(script,"rm -rf ./output/script/sed*")
 Output()
