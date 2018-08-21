@@ -344,7 +344,7 @@ function Duel.ReloadField()
 	end
 end
 function Duel.GetScore()
-	return math.max(Duel.GetLP(0),0)-math.max(Duel.GetLP(1),0)
+	return math.ceil(math.max(Duel.GetLP(0),0)-math.max(Duel.GetLP(1),0))
 end
 function Duel.CalculateTime(t1,t2)
 	local ltime=t2-t1
@@ -407,19 +407,10 @@ function Duel.StartGame()
 				sg:Merge(g1)
 			end
 			local tc=sg:GetFirst()
-			if SHOW_HINT_TIME>0 then
-				local g=tc:GetDirectionGroup(DIRECTION_ALL):Filter(Card.IsExchangable,nil,tc)
-				g:AddCard(tc)
-				local g2=g:Select(0,1,1,nil)
-				sg:Merge(g2)
-				if g2:GetFirst() == tc then rs = false end
-			else
-				local g=tc:GetDirectionGroup(DIRECTION_ALL)
-				g:AddCard(tc)
-				local g2=g:Select(0,1,1,nil)
-				sg:Merge(g2)
-				if g2:GetFirst() == tc then rs = false end
-			end
+			local tg=tc:GetDirectionGroup(DIRECTION_ALL):Filter(SHOW_HINT_TIME>0 and Card.IsExchangable or aux.TRUE,nil,tc)
+			local sc=tg:SelectUnselect(sg,0,false,true,1,1)
+			if sc then sg:AddCard(sc) end
+			if not sc or sc == tc then rs = false end
 			local t2=os.clock()
 			if Duel.CalculateTime(t1,t2) then return end
 		until (rs and sg:IsFitToExchange())
@@ -476,7 +467,7 @@ Item.FunctionList={
 	end,
 }
 
-math.randomseed(os.time()+os.clock())
+--math.randomseed(os.time()+os.clock())
 for i=1,100 do
 	math.random()
 end
