@@ -26,7 +26,7 @@ SHOW_HINT_TIME		=0
 SCORE_ADD_TIME		=0
 
 Debug.SetAIName("Matching Game")
-Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN+DUEL_SIMPLE_AI)
+Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN+DUEL_SIMPLE_AI,4)
 Debug.SetPlayerInfo(0,8000,0,0)
 Debug.SetPlayerInfo(1,8000,0,0)
 for i=1,20 do
