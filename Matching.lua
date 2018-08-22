@@ -36,7 +36,7 @@ for i=1,20 do
 		Debug.AddCard(code,0,0,loc,0,POS_FACEUP_ATTACK,true)
 	end
 end
-BODING_CARD = Debug.AddCard(19162134,1,1,LOCATION_GRAVE,0,POS_FACEUP_ATTACK)
+BODING_CARD = Debug.AddCard(19162134,0,0,LOCATION_SZONE,5,POS_FACEUP_ATTACK)
 Debug.ReloadFieldEnd()
 
 function Group.MergeCard(g,p,loc,seq)
