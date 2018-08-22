@@ -354,7 +354,7 @@ function Duel.CalculateTime(t1,t2)
 	local mlp=(Duel.GetLP(0)-(ltime*400))
 	Duel.SetLP(0,math.max(mlp,0))
 	if Duel.GetLP(0)==0 then
-		local s = string.format("Game Over.\nStart LP: %d\nMax Damage: %d\nTotal Time: %d second\nScore: %d",START_LP,MAX_DM,PLAY_TIME,Duel.GetScore())
+		local s = string.format("Game Over.\nStart LP: %d\nMax Damage: %d\nTotal Time: %d second\nScore: %d",START_LP,MAX_DM,math.floor(PLAY_TIME),Duel.GetScore())
 		Debug.ShowHint(s)
 		return true
 	end
