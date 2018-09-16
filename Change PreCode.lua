@@ -1,3 +1,7 @@
+
+--[[message
+A shell script generator, which replaces the pre-release scripts into official scripts.
+]]
 local script={}
 local script_={}
 local output_func=Debug and Debug.Message or print

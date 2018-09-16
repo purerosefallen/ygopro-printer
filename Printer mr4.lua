@@ -1,3 +1,7 @@
+
+--[[message
+Universal single script to add or remove cards freely. Good to debug or test your card scripts.
+]]
 --created by puzzle edit
 table=require("table")
 io=require("io")

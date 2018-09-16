@@ -1,3 +1,7 @@
+
+--[[message
+A minigame in lua script, which is a copy of Montezuma.
+]]
 --Made by purerosefallen
 
 os=require('os')
@@ -162,7 +166,7 @@ function Card.GetDownwardsPlace(c)
 end
 function Card.MoveDownwards(c)
 	local loc,cp,seq = c:GetDownwardsPlace()
-	Duel.MoveToField(c,1,cp,loc,POS_FACEUP_ATTACK,true)
+	Duel.MoveToField(c,1,cp,loc,POS_FACEUP_ATTACK,true,0x1<<seq)
 	Duel.MoveSequence(c,seq)
 	c:SetItemHint()
 end

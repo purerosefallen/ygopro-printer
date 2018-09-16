@@ -1,3 +1,7 @@
+
+--[[message
+A script to test the redtexts in custom cards. Now this one is replaced by travis script.
+]]
 --Made by purerosefallen
 
 io=require('io')
