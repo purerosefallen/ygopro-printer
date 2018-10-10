@@ -65,7 +65,7 @@ table.insert(script,"mkdir ./output")
 table.insert(script,"mkdir ./output/pics")
 table.insert(script,"mkdir ./output/script")
 table.insert(script,"cp -rf ./ygopro-pre-script/scripts/**/c?????????.lua ./output/script/")
-table.insert(script,"cp -rf ./ygopro-pre-data/picn/* ./output/pics/")
+table.insert(script,"cp -rf ./ygopro-pre-images/pics/* ./output/pics/")
 table.insert(script,"cp -rf ./ygopro-pre-data/field ./output/pics/")
 table.insert(script,"rm -rf ./output/pics/field/.gitkeep")
 for code,name in pairs(new) do
