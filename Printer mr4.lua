@@ -96,7 +96,7 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 	local p=e:GetHandler():GetOwner()
 	local lc=e:GetLabel()
 	local ctt={}
-	for i=1,63 do
+	for i=-30,30 do
 		table.insert(ctt,i)
 	end
 	if lc==256 then
@@ -171,6 +171,7 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 		cd=Duel.AnnounceCard(0)
 	end
 	local ct=Duel.AnnounceNumber(0,table.unpack(ctt))
+	Debug.Message(ct)
 	for i=1,ct do
 		local d=Duel.CreateToken(p,cd)
 		if lc==1 then

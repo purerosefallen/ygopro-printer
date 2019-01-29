@@ -4,6 +4,7 @@ A shell script generator, which replaces the pre-release scripts into official s
 ]]
 local script={}
 local script_={}
+local sql={}
 local output_func=Debug and Debug.Message or print
 function SplitData(inputstr)
 	local t={}
@@ -45,10 +46,19 @@ function Replace(old,new)
 		table.insert(script_,"sed -i 's/"..(old+i*100).."/"..new+i.."/g' ./output/script/c*.lua")	
 		table.insert(script_,"sed -i 's/"..new.."+"..i.."00/"..new+i.."/g' ./output/script/c*.lua")		
 	end
+	table.insert(sql,"UPDATE datas SET alias="..new.." WHERE alias="..old)
+	table.insert(sql,"UPDATE datas SET id="..new.." WHERE id="..old)
+	table.insert(sql,"UPDATE texts SET id="..new.." WHERE id="..old)
 end
 function Output()
 	local f=io.open("replace.sh","w")
 	for _,s in ipairs(script) do
+		f:write(s)
+		f:write("\n")
+	end
+	f:close()
+	local f=io.open("replace.sql","w")
+	for _,s in ipairs(sql) do
 		f:write(s)
 		f:write("\n")
 	end
