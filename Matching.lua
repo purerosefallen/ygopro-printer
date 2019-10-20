@@ -472,7 +472,7 @@ Item.FunctionList={
 	end,
 }
 
---math.randomseed(os.time()+os.clock())
+math.randomseed(os.time()+os.clock())
 for i=1,100 do
 	math.random()
 end
