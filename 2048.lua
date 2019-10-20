@@ -243,7 +243,7 @@ end
 function Duel.GenerateRandom()
 	local free=Duel.GetFreePlaces()
 	local loc=free[math.random(#free)]
-	Duel.NewCard(1):MoveToPlace(loc)
+	Duel.NewCard(math.random(2)):MoveToPlace(loc)
 end
 function Duel.MoveToDirection(dir)
 	if not Duel.IsCanMoveToDirection(dir) then return end

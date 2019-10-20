@@ -314,6 +314,13 @@ ex:SetTargetRange(1,1)
 ex:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
 ex:SetValue(100)
 Duel.RegisterEffect(ex,0)
+local ex=Effect.GlobalEffect()
+ex:SetType(EFFECT_TYPE_FIELD)
+ex:SetCode(EFFECT_EXTRA_TOMAIN_KOISHI)
+ex:SetTargetRange(1,1)
+ex:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+ex:SetValue(100)
+Duel.RegisterEffect(ex,0)
 
 local lp0,lp1=8000,8000
 local load_result=pcall(function()
