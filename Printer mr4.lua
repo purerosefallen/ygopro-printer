@@ -96,7 +96,7 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 	local p=e:GetHandler():GetOwner()
 	local lc=e:GetLabel()
 	local ctt={}
-	for i=1,63 do
+	for i=1,12 do
 		table.insert(ctt,i)
 	end
 	if lc==256 then
