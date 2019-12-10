@@ -3,7 +3,380 @@
 Universal single script to add or remove cards freely. Good to debug or test your card scripts.
 ]]
 --created by puzzle edit
-table=require("table")
+local json = { _version = "0.1.1" }
+
+-------------------------------------------------------------------------------
+-- Encode
+-------------------------------------------------------------------------------
+
+local encode
+
+local escape_char_map = {
+  [ "\\" ] = "\\\\",
+  [ "\"" ] = "\\\"",
+  [ "\b" ] = "\\b",
+  [ "\f" ] = "\\f",
+  [ "\n" ] = "\\n",
+  [ "\r" ] = "\\r",
+  [ "\t" ] = "\\t",
+}
+
+local escape_char_map_inv = { [ "\\/" ] = "/" }
+for k, v in pairs(escape_char_map) do
+  escape_char_map_inv[v] = k
+end
+
+
+local function escape_char(c)
+  return escape_char_map[c] or string.format("\\u%04x", c:byte())
+end
+
+
+local function encode_nil(val)
+  return "null"
+end
+
+
+local function encode_table(val, stack)
+  local res = {}
+  stack = stack or {}
+
+  -- Circular reference?
+  if stack[val] then error("circular reference") end
+
+  stack[val] = true
+
+  if val[1] ~= nil or next(val) == nil then
+    -- Treat as array -- check keys are valid and it is not sparse
+    local n = 0
+    for k in pairs(val) do
+      if type(k) ~= "number" then
+        error("invalid table: mixed or invalid key types")
+      end
+      n = n + 1
+    end
+    if n ~= #val then
+      error("invalid table: sparse array")
+    end
+    -- Encode
+    for i, v in ipairs(val) do
+      table.insert(res, encode(v, stack))
+    end
+    stack[val] = nil
+    return "[" .. table.concat(res, ",") .. "]"
+
+  else
+    -- Treat as an object
+    for k, v in pairs(val) do
+      if type(k) ~= "string" then
+        error("invalid table: mixed or invalid key types")
+      end
+      table.insert(res, encode(k, stack) .. ":" .. encode(v, stack))
+    end
+    stack[val] = nil
+    return "{" .. table.concat(res, ",") .. "}"
+  end
+end
+
+
+local function encode_string(val)
+  return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
+end
+
+
+local function encode_number(val)
+  -- Check for NaN, -inf and inf
+  if val ~= val or val <= -math.huge or val >= math.huge then
+    error("unexpected number value '" .. tostring(val) .. "'")
+  end
+  return string.format("%.14g", val)
+end
+
+
+local type_func_map = {
+  [ "nil"     ] = encode_nil,
+  [ "table"   ] = encode_table,
+  [ "string"  ] = encode_string,
+  [ "number"  ] = encode_number,
+  [ "boolean" ] = tostring,
+}
+
+
+encode = function(val, stack)
+  local t = type(val)
+  local f = type_func_map[t]
+  if f then
+    return f(val, stack)
+  end
+  error("unexpected type '" .. t .. "'")
+end
+
+
+function json.encode(val)
+  return ( encode(val) )
+end
+
+
+-------------------------------------------------------------------------------
+-- Decode
+-------------------------------------------------------------------------------
+
+local parse
+
+local function create_set(...)
+  local res = {}
+  for i = 1, select("#", ...) do
+    res[ select(i, ...) ] = true
+  end
+  return res
+end
+
+local space_chars   = create_set(" ", "\t", "\r", "\n")
+local delim_chars   = create_set(" ", "\t", "\r", "\n", "]", "}", ",")
+local escape_chars  = create_set("\\", "/", '"', "b", "f", "n", "r", "t", "u")
+local literals      = create_set("true", "false", "null")
+
+local literal_map = {
+  [ "true"  ] = true,
+  [ "false" ] = false,
+  [ "null"  ] = nil,
+}
+
+
+local function next_char(str, idx, set, negate)
+  for i = idx, #str do
+    if set[str:sub(i, i)] ~= negate then
+      return i
+    end
+  end
+  return #str + 1
+end
+
+
+local function decode_error(str, idx, msg)
+  local line_count = 1
+  local col_count = 1
+  for i = 1, idx - 1 do
+    col_count = col_count + 1
+    if str:sub(i, i) == "\n" then
+      line_count = line_count + 1
+      col_count = 1
+    end
+  end
+  error( string.format("%s at line %d col %d", msg, line_count, col_count) )
+end
+
+
+local function codepoint_to_utf8(n)
+  -- http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=iws-appendixa
+  local f = math.floor
+  if n <= 0x7f then
+    return string.char(n)
+  elseif n <= 0x7ff then
+    return string.char(f(n / 64) + 192, n % 64 + 128)
+  elseif n <= 0xffff then
+    return string.char(f(n / 4096) + 224, f(n % 4096 / 64) + 128, n % 64 + 128)
+  elseif n <= 0x10ffff then
+    return string.char(f(n / 262144) + 240, f(n % 262144 / 4096) + 128,
+                       f(n % 4096 / 64) + 128, n % 64 + 128)
+  end
+  error( string.format("invalid unicode codepoint '%x'", n) )
+end
+
+
+local function parse_unicode_escape(s)
+  local n1 = tonumber( s:sub(3, 6),  16 )
+  local n2 = tonumber( s:sub(9, 12), 16 )
+  -- Surrogate pair?
+  if n2 then
+    return codepoint_to_utf8((n1 - 0xd800) * 0x400 + (n2 - 0xdc00) + 0x10000)
+  else
+    return codepoint_to_utf8(n1)
+  end
+end
+
+
+local function parse_string(str, i)
+  local has_unicode_escape = false
+  local has_surrogate_escape = false
+  local has_escape = false
+  local last
+  for j = i + 1, #str do
+    local x = str:byte(j)
+
+    if x < 32 then
+      decode_error(str, j, "control character in string")
+    end
+
+    if last == 92 then -- "\\" (escape char)
+      if x == 117 then -- "u" (unicode escape sequence)
+        local hex = str:sub(j + 1, j + 5)
+        if not hex:find("%x%x%x%x") then
+          decode_error(str, j, "invalid unicode escape in string")
+        end
+        if hex:find("^[dD][89aAbB]") then
+          has_surrogate_escape = true
+        else
+          has_unicode_escape = true
+        end
+      else
+        local c = string.char(x)
+        if not escape_chars[c] then
+          decode_error(str, j, "invalid escape char '" .. c .. "' in string")
+        end
+        has_escape = true
+      end
+      last = nil
+
+    elseif x == 34 then -- '"' (end of string)
+      local s = str:sub(i + 1, j - 1)
+      if has_surrogate_escape then
+        s = s:gsub("\\u[dD][89aAbB]..\\u....", parse_unicode_escape)
+      end
+      if has_unicode_escape then
+        s = s:gsub("\\u....", parse_unicode_escape)
+      end
+      if has_escape then
+        s = s:gsub("\\.", escape_char_map_inv)
+      end
+      return s, j + 1
+
+    else
+      last = x
+    end
+  end
+  decode_error(str, i, "expected closing quote for string")
+end
+
+
+local function parse_number(str, i)
+  local x = next_char(str, i, delim_chars)
+  local s = str:sub(i, x - 1)
+  local n = tonumber(s)
+  if not n then
+    decode_error(str, i, "invalid number '" .. s .. "'")
+  end
+  return n, x
+end
+
+
+local function parse_literal(str, i)
+  local x = next_char(str, i, delim_chars)
+  local word = str:sub(i, x - 1)
+  if not literals[word] then
+    decode_error(str, i, "invalid literal '" .. word .. "'")
+  end
+  return literal_map[word], x
+end
+
+
+local function parse_array(str, i)
+  local res = {}
+  local n = 1
+  i = i + 1
+  while 1 do
+    local x
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of array?
+    if str:sub(i, i) == "]" then
+      i = i + 1
+      break
+    end
+    -- Read token
+    x, i = parse(str, i)
+    res[n] = x
+    n = n + 1
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "]" then break end
+    if chr ~= "," then decode_error(str, i, "expected ']' or ','") end
+  end
+  return res, i
+end
+
+
+local function parse_object(str, i)
+  local res = {}
+  i = i + 1
+  while 1 do
+    local key, val
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of object?
+    if str:sub(i, i) == "}" then
+      i = i + 1
+      break
+    end
+    -- Read key
+    if str:sub(i, i) ~= '"' then
+      decode_error(str, i, "expected string for key")
+    end
+    key, i = parse(str, i)
+    -- Read ':' delimiter
+    i = next_char(str, i, space_chars, true)
+    if str:sub(i, i) ~= ":" then
+      decode_error(str, i, "expected ':' after key")
+    end
+    i = next_char(str, i + 1, space_chars, true)
+    -- Read value
+    val, i = parse(str, i)
+    -- Set
+    res[key] = val
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "}" then break end
+    if chr ~= "," then decode_error(str, i, "expected '}' or ','") end
+  end
+  return res, i
+end
+
+
+local char_func_map = {
+  [ '"' ] = parse_string,
+  [ "0" ] = parse_number,
+  [ "1" ] = parse_number,
+  [ "2" ] = parse_number,
+  [ "3" ] = parse_number,
+  [ "4" ] = parse_number,
+  [ "5" ] = parse_number,
+  [ "6" ] = parse_number,
+  [ "7" ] = parse_number,
+  [ "8" ] = parse_number,
+  [ "9" ] = parse_number,
+  [ "-" ] = parse_number,
+  [ "t" ] = parse_literal,
+  [ "f" ] = parse_literal,
+  [ "n" ] = parse_literal,
+  [ "[" ] = parse_array,
+  [ "{" ] = parse_object,
+}
+
+
+parse = function(str, idx)
+  local chr = str:sub(idx, idx)
+  local f = char_func_map[chr]
+  if f then
+    return f(str, idx)
+  end
+  decode_error(str, idx, "unexpected character '" .. chr .. "'")
+end
+
+
+function json.decode(str)
+  if type(str) ~= "string" then
+    error("expected argument of type string, got " .. type(str))
+  end
+  local res, idx = parse(str, next_char(str, 1, space_chars, true))
+  idx = next_char(str, idx, space_chars, true)
+  if idx <= #str then
+    decode_error(str, idx, "trailing garbage")
+  end
+  return res
+end
+
 io=require("io")
 LOCATION_EXMZONE=128
 EXILE_CARD=256
@@ -140,24 +513,56 @@ function op(e,tp,eg,ep,ev,re,r,rp,c,sg,og)
 	if lc==2048 then
 		local sg=Duel.GetMatchingGroup(sefilter,0,0x7f,0x7f,nil,e:GetLabelObject())
 		local lp0,lp1=Duel.GetLP(0),Duel.GetLP(1)
-		local str="<pdata>\n<lp>"..lp0..","..lp1.."</lp>\n"
-		local tc=sg:GetFirst()
-		while tc do
-			str=str.."<card><code>"..tc:GetOriginalCode().."</code><player>"..tc:GetControler().."</player><owner>"..tc:GetOwner().."</owner><location>"..get_save_location(tc).."</location><sequence>"..get_save_sequence(tc).."</sequence><position>"..tc:GetPosition().."</position><stype>"..tc:GetSummonType().."</stype><sloc>"..tc:GetSummonLocation().."</sloc></card>\n"
-			for i,counter in pairs(counter_list) do
+		local data={
+			lp={
+				Duel.GetLP(0),
+				Duel.GetLP(1)
+			},
+			cards={}
+		}
+		local cid=0
+		local id_list={}
+		for tc in aux.Next(sg) do
+			cid=cid+1
+			id_list[tc]=cid
+			local cdata={
+				id=cid,
+				code=tc:GetOriginalCode(),
+				controler=tc:GetControler(),
+				owner=tc:GetOwner(),
+				location=get_save_location(tc),
+				sequence=get_save_sequence(tc),
+				position=tc:GetPosition(),
+				summon_type=tc:GetSummonType(),
+				summon_location=tc:GetSummonLocation(),
+				overlay_cards={},
+				counter={}
+			}
+			for _,counter in pairs(counter_list) do
 				local ct=tc:GetCounter(counter)
 				if ct>0 then
-					str=str.."<counter><code>"..counter.."</code><count>"..ct.."</count></counter>\n"
+					table.insert(cdata.counter,{
+						type=counter,
+						count=ct
+					})
 				end
 			end
 			local og=tc:GetOverlayGroup()
-			og:ForEach(function(oc)
-				str=str.."<overlaycard><code>"..oc:GetOriginalCode().."</code><owner>"..oc:GetOwner().."</owner><stype>"..oc:GetSummonType().."</stype><sloc>"..oc:GetSummonLocation().."</sloc></overlaycard>\n"
-			end)
-			tc=sg:GetNext()
+			for oc in aux.Next(og) do
+				cid=cid+1
+				id_list[oc]=cid
+				table.insert(cdata.overlay_cards, {
+					id=cid,
+					code=oc:GetOriginalCode(),
+					owner=oc:GetOwner(),
+					summon_type=oc:GetSummonType(),
+					summon_location=oc:GetSummonLocation(),
+				})
+			end
+			table.insert(data.cards,cdata)
 		end
-		str=str.."</pdata>"
-		local f=io.open("PrinterData.txt","w+")
+		local str=json.encode(data)
+		local f=io.open("single/printer_data.json","w+")
 		f:write(str)
 		f:close()
 		Debug.ShowHint("Saved")
@@ -324,127 +729,23 @@ Duel.RegisterEffect(ex,0)
 
 local lp0,lp1=8000,8000
 local load_result=pcall(function()
-	local tcp,ts,tempc
-	for line in io.lines('PrinterData.txt') do
-		local lp00,lp01=line:find("<lp>")
-		local lp10,lp11=line:find("</lp>")
-		if lp00 and lp01 and lp10 and lp11 then
-			local slp=line:sub(lp01+1,lp10-1)
-			if slp then
-				local sp=slp:find(",")
-				local slp0=slp:sub(1,sp-1)
-				local slp1=slp:sub(sp+1,#slp)
-				if slp0 then lp0=tonumber(slp0) or lp0 end
-				if slp1 then lp1=tonumber(slp1) or lp1 end
-			end
-		elseif line:find("<card>") and line:find("</card>") then
-			local cd,cp,op,l,s,pos,stype,sloc
-			local cd1,cd2=line:find("<code>")
-			local cd3,cd4=line:find("</code>")
-			if cd1 and cd2 and cd3 and cd4 then
-				local scd=line:sub(cd2+1,cd3-1)
-				if scd then cd=tonumber(scd) end
-			end
-			local cp1,cp2=line:find("<player>")
-			local cp3,cp4=line:find("</player>")
-			if cp1 and cp2 and cp3 and cp4 then
-				local scp=line:sub(cp2+1,cp3-1)
-				if scp then cp=tonumber(scp) end
-			end
-			local op1,op2=line:find("<owner>")
-			local op3,op4=line:find("</owner>")
-			if op1 and op2 and op3 and op4 then
-				local sop=line:sub(op2+1,op3-1)
-				if sop then op=tonumber(sop) end
-			end
-			local l1,l2=line:find("<location>")
-			local l3,l4=line:find("</location>")
-			if l1 and l2 and l3 and l4 then
-				local sl=line:sub(l2+1,l3-1)
-				if sl then l=tonumber(sl) end
-			end
-			local s1,s2=line:find("<sequence>")
-			local s3,s4=line:find("</sequence>")
-			if s1 and s2 and s3 and s4 then
-				local ss=line:sub(s2+1,s3-1)
-				if ss then s=tonumber(ss) end
-			end
-			local pos1,pos2=line:find("<position>")
-			local pos3,pos4=line:find("</position>")
-			if pos1 and pos2 and pos3 and pos4 then
-				local spos=line:sub(pos2+1,pos3-1)
-				if spos then pos=tonumber(spos) end
-			end
-			local stype1,stype2=line:find("<stype>")
-			local stype3,stype4=line:find("</stype>")
-			if stype1 and stype2 and stype3 and stype4 then
-				local sstype=line:sub(stype2+1,stype3-1)
-				if sstype then stype=tonumber(sstype) end
-			end
-			local sloc1,sloc2=line:find("<sloc>")
-			local sloc3,sloc4=line:find("</sloc>")
-			if sloc1 and sloc2 and sloc3 and sloc4 then
-				local ssloc=line:sub(sloc2+1,sloc3-1)
-				if ssloc then sloc=tonumber(ssloc) end
-			end
-			if cd and cp and op and l and s and pos then
-				local tc=Debug.AddCard(cd,op,cp,l,s,pos,true)
-				tcp,ts,tempc=cp,s,tc
-				if stype and sloc then
-					Debug.PreSummon(tc,stype,sloc)
-				end
-			end   
-		elseif line:find("<overlaycard>") and line:find("</overlaycard>") and tcp and ts then
-			local cd,op,stype,sloc
-			local cd1,cd2=line:find("<code>")
-			local cd3,cd4=line:find("</code>")
-			if cd1 and cd2 and cd3 and cd4 then
-				local scd=line:sub(cd2+1,cd3-1)
-				if scd then cd=tonumber(scd) end
-			end
-			local op1,op2=line:find("<owner>")
-			local op3,op4=line:find("</owner>")
-			if op1 and op2 and op3 and op4 then
-				local sop=line:sub(op2+1,op3-1)
-				if sop then op=tonumber(sop) end
-			end
-			local stype1,stype2=line:find("<stype>")
-			local stype3,stype4=line:find("</stype>")
-			if stype1 and stype2 and stype3 and stype4 then
-				local sstype=line:sub(stype2+1,stype3-1)
-				if sstype then stype=tonumber(sstype) end
-			end
-			local sloc1,sloc2=line:find("<sloc>")
-			local sloc3,sloc4=line:find("</sloc>")
-			if sloc1 and sloc2 and sloc3 and sloc4 then
-				local ssloc=line:sub(sloc2+1,sloc3-1)
-				if ssloc then sloc=tonumber(ssloc) end
-			end
-			if cd and op then
-				local tc=Debug.AddCard(cd,op,tcp,LOCATION_MZONE,ts,POS_FACEUP_ATTACK,true)
-				if stype and sloc then
-					Debug.PreSummon(tc,stype,sloc)
-				end
-			end
-		elseif line:find("<counter>") and line:find("</counter>") and tempc then
-			local tp,ct
-			local tp1,tp2=line:find("<code>")
-			local tp3,tp4=line:find("</code>")
-			if tp1 and tp2 and tp3 and tp4 then
-				local stp=line:sub(tp2+1,tp3-1)
-				if stp then tp=tonumber(stp) end
-			end
-			local ct1,ct2=line:find("<count>")
-			local ct3,ct4=line:find("</count>")
-			if ct1 and ct2 and ct3 and ct4 then
-				local sct=line:sub(ct2+1,ct3-1)
-				if sct then ct=tonumber(sct) end
-			end
-			if tp and ct then
-				Debug.PreAddCounter(tempc,tp,ct)
-			end
+	local f=io.open("single/printer_data.json","r")
+	local raw=f:read("*a")
+	print(raw)
+	local data=json.decode(raw)
+	lp0=data.lp[1]
+	lp1=data.lp[2]
+	for _,cdata in ipairs(data.cards) do
+		local tc=Debug.AddCard(cdata.code,cdata.owner,cdata.controler,cdata.location,cdata.sequence,cdata.position,true)
+		for _,counter in ipairs(cdata.counter) do
+			Debug.PreAddCounter(tc,counter.type,counter.count)
+		end
+		for _,overlay_cards in ipairs(cdata.overlay_cards) do
+			local oc=Debug.AddCard(overlay_cards.code,overlay_cards.owner,cdata.controler,LOCATION_MZONE,cdata.sequence,POS_FACEUP_ATTACK,true)
+			Debug.PreSummon(oc,overlay_cards.summon_type,overlay_cards.summon_location)
 		end
 	end
+	f:close()
 end)
 Debug.SetPlayerInfo(0,lp0,0,0)
 Debug.SetPlayerInfo(1,lp1,0,0)
