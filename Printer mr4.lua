@@ -416,7 +416,7 @@ opcode_list={
 
 
 Debug.SetAIName("Printer by Nanahira")
-Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN+DUEL_SIMPLE_AI,4)
+Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN+DUEL_SIMPLE_AI,5)
 
 local g=Group.CreateGroup()
 local n=1
