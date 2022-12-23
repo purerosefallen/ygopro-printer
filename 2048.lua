@@ -10,9 +10,8 @@ DIRECTION_DOWN		=0x2
 DIRECTION_LEFT		=0x4
 DIRECTION_RIGHT		=0x8
 
-_os=os or package.preload.os
-if _os then
-	math.randomseed(_os.time())
+if os then
+	math.randomseed(os.time())
 end
 
 CardList={
@@ -30,27 +29,33 @@ CardList={
 	10000040,
 }
 
+function _addCard(...)
+	local c=Debug.AddCard(...)
+	c:ReplaceEffect(80316585,0,0)
+	return c
+end
+
 for i=1,16 do
 	local loc=LOCATION_GRAVE
 	if i>8 then loc=LOCATION_REMOVED end
 	for _,code in ipairs(CardList) do
-		local c=Debug.AddCard(code,i%2,i%2,loc,0,POS_FACEUP_ATTACK,true)
+		local c=_addCard(code,i%2,i%2,loc,0,POS_FACEUP_ATTACK,true)
 		c:ReplaceEffect(80316585,0,0)
 	end
 end
 
 FORBIDDEN_CARDS=Group.FromCards(
-	Debug.AddCard(99111753,0,0,LOCATION_SZONE,2,POS_FACEUP_ATTACK,true),
-	Debug.AddCard(99111753,1,1,LOCATION_SZONE,2,POS_FACEUP_ATTACK,true)
+	_addCard(99111753,0,0,LOCATION_SZONE,2,POS_FACEUP_ATTACK,true),
+	_addCard(99111753,1,1,LOCATION_SZONE,2,POS_FACEUP_ATTACK,true)
 )
 FORBIDDEN_CARDS:KeepAlive()
 
 DIRECTION_CARDS=Group.CreateGroup()
 DIRECTION_CARDS:KeepAlive()
-UP_CARD=	Debug.AddCard(41999284,1,1,LOCATION_MZONE,2,POS_FACEUP_ATTACK,true)
-DOWN_CARD=	Debug.AddCard(41999284,0,0,LOCATION_MZONE,2,POS_FACEUP_ATTACK,true)
-LEFT_CARD=	Debug.AddCard(86148577,0,0,LOCATION_MZONE,5,POS_FACEUP_ATTACK,true)
-RIGHT_CARD=	Debug.AddCard(86148577,1,1,LOCATION_MZONE,5,POS_FACEUP_ATTACK,true)
+UP_CARD=	_addCard(41999284,1,1,LOCATION_MZONE,2,POS_FACEUP_ATTACK,true)
+DOWN_CARD=	_addCard(41999284,0,0,LOCATION_MZONE,2,POS_FACEUP_ATTACK,true)
+LEFT_CARD=	_addCard(86148577,0,0,LOCATION_MZONE,5,POS_FACEUP_ATTACK,true)
+RIGHT_CARD=	_addCard(86148577,1,1,LOCATION_MZONE,5,POS_FACEUP_ATTACK,true)
 
 DIRECTION_LIST_REV={}
 
@@ -178,8 +183,11 @@ function Card.MoveToPlace(c,loc)
 	if c:GetPlace():Equal(loc) or not loc:IsInBoard() then return end
 	local p,lo,seq=loc:Format()
 	if not Duel.CheckLocation(p,lo,seq) then return end
-	Duel.MoveToField(c,1,p,lo,POS_FACEUP_ATTACK,true,0x1<<seq)
-	Duel.MoveSequence(c,seq)
+	if c:GetLocation() ~= lo or c:GetControler() ~= p then
+		Duel.MoveToField(c,1,p,lo,POS_FACEUP_ATTACK,true,0x1<<seq)
+	elseif c:GetSequence() ~= seq then
+		Duel.MoveSequence(c,seq)
+	end
 end
 function Card.MergeWith(c,tc)
 	local loc=tc:GetPlace()

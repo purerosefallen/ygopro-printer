@@ -120,6 +120,7 @@ function process()
     if #fg == 0 then
       Duel.SetLP(1, 0)
       Debug.ShowHint("你赢了")
+      return
     end
     local fc = fg:Select(0, 1, 1, nil):GetFirst()
     if fc:ProcessSelected() then
