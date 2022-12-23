@@ -1,5 +1,6 @@
 --[[message
-羊了个羊
+羊了个羊！
+By Nanahira @Nana_Yumesaki
 ]]
 
 ------
