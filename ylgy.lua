@@ -113,7 +113,7 @@ function Card.ProcessSelected(c)
 end
 
 function process()
-  Debug.ShowHint("羊了个羊！选择卡片来把最上面的卡片放入手卡。7 个手卡后，你将会输掉游戏。")
+  Debug.ShowHint("羊了个羊！选择卡片来把最上面的卡片放入手卡。7 个手卡后，你将会输掉游戏。By Nanahira @Nana_Yumesaki")
   while true do
     local fg = fieldCardGroup:Filter(function(c) return c:GetSurfaceCard() ~= nil end, nil)
     if #fg == 0 then
